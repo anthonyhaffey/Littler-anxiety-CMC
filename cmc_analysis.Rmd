@@ -1,0 +1,493 @@
+---
+title: "Anxiety and Computer-Mediated Communication"
+output: html_notebook
+code_folding: hide
+---
+
+
+
+```{r echo=FALSE}
+###functions
+apa.round <- function(number,decimals){
+  clean.number = round(number, decimals)
+  this.sign = ""
+  if(clean.number < 0){
+    this.sign = "-"
+  }
+  clean.number = abs(clean.number)
+  
+  if(clean.number < .001){
+    clean.number = paste("<",this.sign,".001",sep="")
+  } else {
+    if(clean.number < 1){
+      clean.number = paste(this.sign,substr(clean.number,2,5), sep = "")
+    } else {
+      clean.number = paste(this.sign,clean.number,sep = "")
+    }
+  }
+  
+  return (clean.number)
+}
+cohen.d.haff<-function(group1,group2,mu=F){
+  
+  if(typeof(mu)=="logical"){
+    result=abs(mean(group1)-mean(group2))/sqrt((sd(group1)^2+sd(group2)^2)/2)
+  }
+  else   {  
+    result = abs(mean(group1)-mu)/sd(group1)  
+  }
+  
+  return(result)
+}
+
+cousineau.SE<-function(data_frame_inputted){
+  across.means<-rowMeans(data_frame_inputted);
+  supreme.mean<-mean(across.means);
+  adjust.means<-across.means-supreme.mean;
+  corrected.values<-data_frame_inputted-adjust.means;
+  corrected.means<-colMeans(corrected.values, dims = 1);  
+  corrected.means.array<-data.frame(corrected.means)
+  corrected.means.array<-data.frame(rep(corrected.means.array,dim(corrected.values)[1]))
+  
+  corrected.means.array <- as.data.frame(t(corrected.means.array))
+  colnames(corrected.means.array) <- corrected.means.array[1, ]
+  corr.dev.means<-corrected.values-corrected.means.array
+  corr.adj.sd<-corr.dev.means*corr.dev.means;
+  corrected.SEs<-(sqrt(colSums(corr.adj.sd/(dim(corr.dev.means)[1]-1))))/sqrt(dim(corr.dev.means)[1])                         
+  results<-corrected.SEs;
+  return(results)
+}
+```
+
+```{r echo=F}
+# Analysis settings
+outlier.sds = 3
+```
+
+```{r echo=F}
+if(!require(BayesFactor)){install.packages("BayesFactor")}
+if(!require(car)){install.packages("car")}
+if(!require(data.table)){install.packages("data.table")}
+if(!require(foreign)){install.packages("foreign")}
+if(!require(ggplot2)){install.packages("ggplot2")}
+if(!require(knitr)){install.packages("knitr")}
+if(!require(memisc)){install.packages("memisc")}
+
+library(afex)         # This should be a default package
+library(BayesFactor)
+library(car)
+library(data.table)
+library(foreign)      #may not be necessary
+library(ggplot2)
+library(knitr)
+library(memisc)
+```
+
+
+# Abstract
+
+This study examined the effect of anonymous computer mediated communication (CMC) on state anxiety, specifically focusing on whether the valence of the interaction affected state anxiety prior to completing an anxiety-inducing task. To investigate this, 62 female participants aged 18-25 were randomly assigned to one of three conditions: positive CMC, negative CMC and writing a blog. Self-report measures of state anxiety were taken at: baseline; after participants had been given instructions about the anxiety-inducing task; after ten minutes of CMC/blog writing; and after the anxiety-inducing task had been completed. Results showed that participants in the positive CMC condition showed a significant and moderate decrease in anxiety following the CMC whereas those in the negative CMC condition showed a non-significant but moderate increase in anxiety following the CMC. Anxiety remained relatively unaffected by the blog condition. After completing the anxiety-inducing task there were no differences in anxiety scores between groups. The findings show that CMC can be beneficial for relieving state anxiety but that the valence of the communication is crucial. This has implications for advice and training given to those participating in and supporting CMC where mental health issues might be discussed. 
+
+*Keywords:* Computer-mediated communication; anxiety; online; mental health; support.
+
+# The effect of anonymous computer-mediated communication on state anxiety: An experimental study.  
+
+Young adults use social media more than any other demographic group. According to the Office of National Statistics (2017), 96% of UK 16-24-year old’s use some form of social media site to communicate online with others. Computer mediated communication (CMC) refers to any human communication that occurs through two or more electronic devices (McQuail, 2005). Increasingly, young people use CMC as a means of seeking emotional support (Siriaraya, Tang, Ang, Pfeil & Zaphiris,, 2011) as online support groups act as platforms for users to exchange information and knowledge as well as to socialize and form interpersonal relationships (Colòn & Friedman, 2003; Bellafiore, Colón & Rosenberg, 2004; Mallen, Vogel & Rochlen, 2005). There is emerging evidence that CMC can be beneficial for individuals with mental health problems. For example, self report and interview data suggests participating in online support groups and forums to discuss difficult feelings or experiences reduces negative emotions and increases positive emotion (Høybye, Johansen &  Tjørnhøj‐Thomsen, 2005). Similarly, Barak, Boniel-Nissim & Suler (2008) found that participants felt greater emotional support after using CMC to talk to people with similar experiences. Despite these positive experiences, one of the concerns with CMC as a means of supporting mental health is that negatively-toned interactions could exacerbate negative emotions (Naslund, Aschbrenner, Marsch & Bartels, 2016). Here we use an experimental design to evaluate how the valence of CMC affects state anxiety.
+
+When users communicate online, they are often less inhibited than when communicating in person (Suler, 2004) . This ‘online disinhibition effect’ encourages users to be more honest and accelerates rates of self-disclosure relative to face-to-face interactions (Tanis, 2007), resulting in greater intimacy and a strong interpersonal bond between users (Barak et al., 2008). Barak et al. (2008) suggest that the online disinhibition effect is caused by a number of features of the online environment. First, online anonymity allows participants to feel less vulnerable as users are able to protect their ‘real-world’ identities from what is said online. Conversations that take place in chat-rooms are therefore immune to any ‘real-world’ repercussions. Second, the nature of text-based communication is that the participants cannot see each other during the interaction and therefore are less concerned about how they look or sound to other users. Third, due to the nature of asynchronous online communication,  individuals can take as long as they want to respond to a message, allowing for  a deeper expression of what one is thinking (Taylor & MacDonald, 2002). Finally, in an anonymous chat room, status or power that may exist between individuals are no longer present. This reduced perception of authority allows users to feel more comfortable speaking their minds (Galegher, Sproull & Kiesler, 1998). 
+
+Because of the disinhibition that is experienced during CMC and the decreased sense of being evaluated by others (Shepherd and Edelmann, 2005), CMC may be especially inviting for individuals high in social anxiety, which is characterised by a fear of negative evaluation and avoidance of social situations (DSM-V; American Psychiatric Association, 2013). Socially anxious individuals typically encounter difficulty when disclosing their feelings to others during face-to-face interactions (Lundy and Drouin, 2016); CMC may therefore be particularly attractive as a means of gaining support for social anxiety. Evidence has demonstrated that internet use is higher in students with social anxiety disorder compared to students without social anxiety (Lin, 2004; Yen, Ko, Yen, Wu & Yang, 2007) and individuals with high levels of social anxiety not only spend more time communicating online (Mazalin & Moore, 2004; Pierce, 2009) but are also more inclined to form online relationships rather than face-to-face relationships (McKenna & Bargh, 1999). Further, individuals high in social anxiety report greater ease communicating online compared to ‘real-world’ face-to-face interactions (Erwin, Turk, Heimberg, Fresco & Hantula, 2004; Shepherd and Edelmann, 2005).  Leary and Kowalski (1995) suggest that socially anxious individuals actively seek out less threatening social environments to disclose personal information. As discussed, the online environment can fit these needs for a variety of reasons (Barak et al, 2008).
+
+There is evidence that individuals high in social anxiety find CMC beneficial. Stritzke, Nguyen & Durkin (2004) demonstrated that anonymous CMC not only reduced levels of shyness in socially anxious participants but also led to more positive interpretations of ambiguous social cues. Further, Sheeks and Birchmeier’s (2007) found that shy individuals felt that they were better able to fully express themselves using an online platform as opposed to face-to-face interactions. Similarly, Shalom, Israeli, Markovitzky & Lipsitz (2015) reported that individuals with higher levels of social anxiety perceived greater subjective conversational success in online communication compared to face-to-face interactions. Lundy and Drouin (2016) compared the development of interpersonal relationships online against the development of interpersonal relationships face-to-face and found that socially anxious individuals had far greater success (both objectively and subjectively) developing relationships using CMC than face-to-face.  
+As technology develops, increasingly support for mental health can be found online. Therapies have become available (e.g. SilverCloud) and apps have been developed that allow users to communicate directly with a therapist (e.g. BetterHelp, 2003). Further, peer support apps and forums are growing in popularity (e.g. Big White Wall; MeeTwo and others).  Through social media sites, such as Facebook and Twitter, individuals are also able to informally seek support for mental health problems.
+
+When individuals seek support online, from peer support apps for example, the responses they receive are likely to differ in valence. Some responses may be positive and supportive (e.g. “you can handle this”, “it will be ok”) whereas others may have a more negative valence (e.g. “it’s awful’, ‘I couldn’t cope if that was me”). Negatively valenced interactions may be particularly likely if two users share a negative emotional state. Although previous work has highlighted the negative effects of intentional negative CMC (e.g. cyberbullying; Erdoğdu, 2016), to our knowledge no research has examined how positively valenced and negatively valenced interactions differentially affect state anxiety. 
+
+Here we aimed to examine how the valence of anonymous CMC affects state anxiety using a carefully controlled experimental manipulation. State anxiety was manipulated by telling participants they had to complete a performance task that would be filmed and evaluated. We specifically focused on a task to induce social anxiety because it is related to greater engagement in CMC as described above. Participants were given ten minutes to engage in anonymous CMC before completing the performance task and were assigned to one of three CMC conditions: negatively valenced CMC, positively valenced CMC or a blog control condition. We hypothesised that state anxiety before and after the CMC would be significantly influenced by the valence of the CMC, with anxiety significantly decreasing after positive CMC and significantly increasing after negative CMC.  We also explored whether these effects would be maintained after the task had been completed. 
+
+# Method
+## Participants
+
+Sixty-two females were recruited via an undergraduate psychology participant pool based at the _________. To be eligible to take part, participants had to be aged between 18 and 26 years and have no physical disability that would prevent them from taking part in a yoga based activity. Only females were recruited to reduce variance in anxiety levels between participants, as males have been found to experience less social anxiety than females (McLean, Asnaani, Litz & Hofmann, 2011).
+
+## Procedure
+
+Study procedures were approved by the School of Psychology and Clinical Language Sciences Human Ethics Committee at the University of Reading. Participants were told that this was a study investigating the effects of a mentor on pressured performance. After reading the information sheet and giving informed consent, the participant was shown to a desktop computer.
+
+Before being given any information about what they would be doing, participants were asked to rate their state anxiety using a scale from 0 (No anxiety whatsoever) to 100 (Could not be more anxious) on a self-report scale (Abend et al., 2014). Participants were then informed that they would be required to complete 5 yoga poses which would be filmed and judged by an expert. To increase state anxiety, participants were then shown a series of silhouette drawings depicting the poses they would be asked to recreate. Participants were then required to rate their state anxiety again. Depending on their assigned condition, participants were then told they would be given 10 minutes to either write a blog or communicate with another participant before completing the yoga poses.
+
+In the positive and negative conditions, participants were told they would be connected to another participant via an anonymous, text-based, chat-room. They were told that the other participant had completed the task earlier and was now acting as a ‘mentor’. After logging the participant into the chat-room, the experimenter told the participant that they were leaving the room to log the mentor into the chat and that the mentor would start the chat when they were ready. The participants were told that none of the chat data would be saved so they were free to be as open as they wished. The experimenter then acted as the mentor in both conditions. In the positive condition the mentor was positive about their experience focusing on themes of relief, fun and relaxation. In the negative condition, the main themes were distress, discomfort, judgement and awkwardness. 
+
+In the Blog condition participants were told they were in a control condition (having no mentor) which examined the effect of self-preparation. These participants were left alone for 10 minutes and asked to write about how they were feeling about doing the yoga poses using the text box on the screen. All chat and blog sessions automatically ended after 10 minutes. 
+
+Participants then rated their state anxiety using the 0-100 scale again. They then performed the yoga poses whilst they were videoed. After all the poses were complete participants completed a post-activity questionnaire which measured their opinion of how successfully they completed the task and how helpful they found the mentor. Subsequently, participants gave a final rating of their state anxiety. 
+
+Once the final measurement had been taken participants were debriefed fully. The researcher disclosed the fact that they had been the mentor and explained the purpose of the study. 
+
+## Materials and Design
+
+
+```{r echo=FALSE}
+
+### Preprocessing/Data cleaning
+### change the below to wherever you downloaded your repository
+this.root.dir = "C:/Users/nt906822/OneDrive - University of Reading/Github/Littler-anxiety-CMC/"
+
+opts_knit$set(root.dir = this.root.dir)
+summary.data <- read.csv('DATA.csv')
+total.pps = length(summary.data$id)
+clean.summary.data = na.omit(summary.data)
+complete.pps = length(clean.summary.data$id)
+
+## between participant outlier.removal
+#loop through all columns
+all.cols = c("sr1","sr2","sr3","sr4")
+
+for(i in 1:length(all.cols)){
+  #identify outliers
+  if(all.cols[i] != "condition"){
+    this.mean      = mean(clean.summary.data[[all.cols[i]]])
+    this.sd        = sd(clean.summary.data[[all.cols[i]]])
+    this.upper.lim = this.mean + outlier.sds * this.sd
+    this.lower.lim = this.mean - outlier.sds * this.sd
+    outliers_index = clean.summary.data[[all.cols[i]]] > this.upper.lim | clean.summary.data[[all.cols[i]]] < this.lower.lim
+    clean.summary.data[[all.cols[i]]][outliers_index] <- NaN
+  }
+}
+clean.summary.data = na.omit(clean.summary.data)
+pps.without.outliers = length(clean.summary.data$id) 
+outlier.pps = complete.pps - pps.without.outliers
+min.age = min(clean.summary.data$Age)
+max.age = max(clean.summary.data$Age)
+mean.age = mean(clean.summary.data$Age)
+sd.age = sd(clean.summary.data$Age)
+
+blog.pps = sum(clean.summary.data$condition == "Blog")
+pos.pps = sum(clean.summary.data$condition == "Positive")
+neg.pps = sum(clean.summary.data$condition == "Negative")
+
+```
+
+Participants were randomly allocated to one of three conditions: Positive CMC (N=`r pos.pps`); Negative CMC (N=`r neg.pps`); and Blog (N=`r blog.pps`). The Blog condition served as a control as it was conducted in the same environment as the experimental conditions (sitting at a computer alone and typing) but lacked the interaction and valence aspects of the other conditions. All participants reported their state anxiety level at 4 time-points: (1) before the task instructions were given, (2) after the task instructions were given, (3) after the CMC or blog activity and (4) after the yoga task was completed. 
+
+E-Prime 2.0 (Psychology Software Tools, PA, USA) was used to present instructions to participants and record ratings of their state anxiety. Temporary web-pages were built for the online chat-room and blog to ensure that all conditions experienced the same interface. For the experimental conditions two separate chat-rooms were created; one for the participant and one for the experimenter. To access the chat-room, a unique room code was entered on both the participant and experimenter PC. 
+
+The ‘participant’ and ‘experimenter’ chat-rooms differed in one aspect. Both chat-rooms had two text boxes (one to write in and one to view the conversation) but the experimenter chat-room also had buttons with specific pre-selected phrases available (Appendix 1). Both negative and positive word buttons were informed by Arguello et al., (2006) who identified that the words the differing effects that certain words can have on the recipient’s mood.
+
+When clicked, this word or phrase was sent to the participant. This was done to give the experimenter prompts about what to say and to make the experience as similar as possible across participants. The experimenter could also type freely into the text box. This was required to facilitate credible interactions with the participants to maintain their belief that they were having a conversation with another student. The Blog interface was identical to the ‘participant chat-room’ but when they submitted text it simply appeared on screen without responses from another individual.    
+
+## Data preparation
+
+Self-reported state anxiety ratings were available for four time-points: pre-instruction, post-instruction, post-CMC, post-task. Data from eight participants were excluded prior to analysis: one participant guessed the aim of the study and said that they changed their responses as a result; four were excluded due to a programming error preventing these participants receiving the messages from the experimenter; `r outlier.pps` were excluded because their state anxiety scores were outliers (more than `r outlier.sds` standard deviations from the mean within the time-point). The final sample consisted of `r complete.pps` participants, aged between `r min.age`-`r max.age` (M = `r apa.round(mean.age,2)`, SD = `r apa.round(sd.age,2)`).
+
+# Results
+
+Figure 1 shows the mean and the within-subject standard errors (Cousineau, 2005) of state anxiety ratings for each condition at each time-point. This demonstrates that across all three conditions the anxiety-induction manipulation was successful and participants felt more anxious after being told about the task that they would be asked to perform. 
+
+```{r echo=F}
+### set up cousineau errors
+pos.sr.cous <- data.frame(sr1 = clean.summary.data$sr1[clean.summary.data$condition == "Positive"],
+                          sr2 = clean.summary.data$sr2[clean.summary.data$condition == "Positive"],
+                          sr3 = clean.summary.data$sr3[clean.summary.data$condition == "Positive"],
+                          sr4 = clean.summary.data$sr4[clean.summary.data$condition == "Positive"])
+
+neg.sr.cous <- data.frame(sr1 = clean.summary.data$sr1[clean.summary.data$condition == "Negative"],
+                          sr2 = clean.summary.data$sr2[clean.summary.data$condition == "Negative"],
+                          sr3 = clean.summary.data$sr3[clean.summary.data$condition == "Negative"],
+                          sr4 = clean.summary.data$sr4[clean.summary.data$condition == "Negative"])
+
+blog.sr.cous <- data.frame( sr1 = clean.summary.data$sr1[clean.summary.data$condition == "Blog"],
+                            sr2 = clean.summary.data$sr2[clean.summary.data$condition == "Blog"],
+                            sr3 = clean.summary.data$sr3[clean.summary.data$condition == "Blog"],
+                            sr4 = clean.summary.data$sr4[clean.summary.data$condition == "Blog"])
+
+
+sr.pos.se  = cousineau.SE(pos.sr.cous)
+sr.neg.se  = cousineau.SE(neg.sr.cous)
+sr.blog.se = cousineau.SE(blog.sr.cous)
+
+plot.data = data.frame(condition =   c(rep("1.Pre-Instruction",3),
+                                             rep("2.Post-Instruction",3),
+                                             rep("3.Post-CMC",3),
+                                             rep("4.Post-Task",3)),
+                       
+                       CMC =  rep(c("Positive","Negative","Blog"),4),
+                       
+                       ##Self report
+                       
+                       sr.mean    =c(mean(clean.summary.data$sr1[clean.summary.data$condition == "Positive"]),
+                                     mean(clean.summary.data$sr1[clean.summary.data$condition == "Negative"]),
+                                     mean(clean.summary.data$sr1[clean.summary.data$condition == "Blog"]),
+                                     
+                                     #After Yoga
+                                     mean(clean.summary.data$sr2[clean.summary.data$condition == "Positive"]),
+                                     mean(clean.summary.data$sr2[clean.summary.data$condition == "Negative"]),
+                                     mean(clean.summary.data$sr2[clean.summary.data$condition == "Blog"]),
+                                     
+                                     #After intervention
+                                     mean(clean.summary.data$sr3[clean.summary.data$condition == "Positive"]),
+                                     mean(clean.summary.data$sr3[clean.summary.data$condition == "Negative"]),
+                                     mean(clean.summary.data$sr3[clean.summary.data$condition == "Blog"]),
+                                     
+                                     #After yoga completed
+                                     mean(clean.summary.data$sr4[clean.summary.data$condition == "Positive"]),
+                                     mean(clean.summary.data$sr4[clean.summary.data$condition == "Negative"]),
+                                     mean(clean.summary.data$sr4[clean.summary.data$condition == "Blog"])),
+
+                                     #Before Yoga
+                      
+                       sr.s.e   = c(sr.pos.se[1],
+                                    sr.neg.se[1],
+                                    sr.blog.se[1],
+                                    
+                                     #After Yoga
+                                    
+                                    sr.pos.se[2],
+                                    sr.neg.se[2],
+                                    sr.blog.se[2],
+                                    
+                                    #After intervention  
+                                    
+                                    sr.pos.se[3],
+                                    sr.neg.se[3],
+                                    sr.blog.se[3],
+                                    
+                                    #After yoga completed    
+                                    
+                                    sr.pos.se[4],
+                                    sr.neg.se[4],
+                                    sr.blog.se[4]))
+                       
+                      
+                                       
+                                       
+ggplot(plot.data, aes(x = condition, y=sr.mean, fill=CMC)) + 
+  geom_bar(stat="identity",position="dodge") + #fill = "#FF6666"
+  geom_errorbar(aes(ymin=sr.mean-sr.s.e, ymax=sr.mean+sr.s.e), position = position_dodge(width=0.9), width=.1) + 
+  labs(x = "Time-Point",
+       y = "Mean Anxiety (out of 100)")
+  #coord_cartesian(ylim=c(2.5,4))
+
+```
+*Figure 1.* Mean self-report state anxiety scores for each condition at each time point. Within-subject error bars were calculated using Cousineau’s (2005) formula. 
+
+
+
+## Anxiety Before and After Instructions 
+
+```{r echo=F}
+pre.vs.post.instruct.summary <- melt(clean.summary.data,id.vars = c("id","condition"),
+                                                   measure.vars = c("sr1",
+                                                                    "sr2"))
+
+colnames(pre.vs.post.instruct.summary) = c("pp",
+                                           "condition",
+                                           "time",
+                                           "self.report.value")
+
+this_aov_ez <- aov_ez(id = "pp",
+                      dv = "self.report.value",
+                      data = pre.vs.post.instruct.summary,
+                      between="condition",
+                      within="time",
+                      anova_table = "pes")
+
+this_aov_ez$Anova
+
+mean.pre.vs.post.instr = tapply(pre.vs.post.instruct.summary$self.report.value,
+                                pre.vs.post.instruct.summary$time,
+                                mean)
+sd.pre.vs.post.instr   = tapply(pre.vs.post.instruct.summary$self.report.value,
+                                pre.vs.post.instruct.summary$time,
+                                sd)
+
+```
+
+To examine whether the task instructions successfully induced state anxiety, a 2 X 3 ANOVA was conducted with time-point (pre-instruction, post-instruction) as a within-subject variable and condition (positive valence, negative valence, blog) as a between-subject variable. There was a significant main effect of time-point (F(1,51) = 43.825, p < .001, ηp2 = 0.462; see Fig.1); state anxiety was higher after instructions (M = `r apa.round(mean.pre.vs.post.instr[2],3)`, SD = `r apa.round(sd.pre.vs.post.instr[2],3)`) than before (M = `r apa.round(mean.pre.vs.post.instr[1],3)`, SD = `r apa.round(sd.pre.vs.post.instr[1],3)`). There was no significant effect of condition (F(2,51) = 2.305, p = .11, ηp2 = 0.083) or interaction between time-point and condition (F(2,51) = .718, p = .493, ηp2 = .027). This indicates that the manipulation of state anxiety was successful and did not significantly differ between conditions.
+
+## Anxiety Before and After CMC or Blog
+
+```{r echo=F}
+
+#write.csv(clean.summary.data,"josh_clean_summary.csv")
+post.instruct.post.interv.summary <- melt(clean.summary.data,id.vars = c("id","condition"),
+                                          measure.vars = c("sr2",
+                                                           "sr3"))
+
+colnames(post.instruct.post.interv.summary) = c("pp",
+                                       "condition",
+                                       "time",
+                                       "self.report.value")
+
+this_aov_ez <- aov_ez(id = "pp",
+                      dv = "self.report.value",
+                      data = post.instruct.post.interv.summary,
+                      between="condition",
+                      within="time",
+                      anova_table = "pes")
+
+this_aov_ez$Anova
+
+# following are unnecessary as there are no respective main effects to measure:
+# post.inst.vs.post.cmc.mean = tapply(post.instruct.post.interv.summary$self.report.value,
+#                                     post.instruct.post.interv.summary$time,
+#                                     mean)
+# post.inst.vs.post.cmc.sd = tapply(post.instruct.post.interv.summary$self.report.value,
+#                                   post.instruct.post.interv.summary$time,
+#                                   sd)
+
+```
+
+
+To investigate whether condition affected state anxiety before performing the yoga poses, a 2 X 3 ANOVA was conducted comparing post-instruction anxiety with post-CMC/blog anxiety between conditions. As expected, there was a significant time-point by condition interaction (F(2,51) = 5.674, p = .006, ηp2 = 0.182; See Fig.1), but no significant main effect of condition (F(2,51) = 3.063, p = .055, ηp2 = 0.107) or time (F(1,51) = 1.346, p = .251, ηp2 = 0.026). 
+
+
+```{r echo=FALSE}
+sr.pos.post.int.vs.post.interv <- t.test(clean.summary.data$sr3[clean.summary.data$condition=="Positive"],
+                                         clean.summary.data$sr2[clean.summary.data$condition=="Positive"],
+                                         paired=T)
+
+sr.neg.post.int.vs.post.interv <- t.test(clean.summary.data$sr3[clean.summary.data$condition=="Negative"],
+                                         clean.summary.data$sr2[clean.summary.data$condition=="Negative"],
+                                         paired=T)
+
+sr.blog.post.int.vs.post.interv <- t.test(clean.summary.data$sr3[clean.summary.data$condition=="Blog"],
+                                          clean.summary.data$sr2[clean.summary.data$condition=="Blog"],
+                                          paired=T)
+
+## calcualte the Cohen's D here!
+sr.blog.post.int.vs.post.interv.cohen.d.df <- data.frame(pp = rep(clean.summary.data$id[clean.summary.data$condition=="Blog"],2),
+                                                         sr = c(clean.summary.data$sr2[clean.summary.data$condition=="Blog"],
+                                                                clean.summary.data$sr3[clean.summary.data$condition=="Blog"]),
+                                                         time = c(rep(2,length(clean.summary.data$sr3[clean.summary.data$condition=="Blog"])),
+                                                                  rep(3,length(clean.summary.data$sr3[clean.summary.data$condition=="Blog"]))))
+
+positive.cohen.d = cohen.d.haff(clean.summary.data$sr2[clean.summary.data$condition=="Positive"] - 
+                                clean.summary.data$sr3[clean.summary.data$condition=="Positive"],
+                                mu = 0)
+
+negative.cohen.d = cohen.d.haff(clean.summary.data$sr2[clean.summary.data$condition=="Negative"] - 
+                                clean.summary.data$sr3[clean.summary.data$condition=="Negative"],
+                                mu = 0)
+
+blog.cohen.d = cohen.d.haff(clean.summary.data$sr2[clean.summary.data$condition=="Blog"] - 
+                            clean.summary.data$sr3[clean.summary.data$condition=="Blog"],
+                            mu = 0)
+```
+
+
+Follow-up t-tests indicate that the interaction was driven by participants in the positive condition showing a significant reduction in self-reported state anxiety, with a medium effect-size, from before CMC (M = `r mean(clean.summary.data$sr2[clean.summary.data$condition=="Positive"])`, SD = `r apa.round(sd(clean.summary.data$sr2[clean.summary.data$condition=="Positive"]),3)`) to after CMC (M = `r mean(clean.summary.data$sr3[clean.summary.data$condition=="Positive"])`, SD = `r apa.round(sd(clean.summary.data$sr3[clean.summary.data$condition=="Positive"]),3)`), t(`r sr.pos.post.int.vs.post.interv$parameter`) = `r apa.round(sr.pos.post.int.vs.post.interv$statistic,3)`, p = `r apa.round(sr.pos.post.int.vs.post.interv$p.value,3)`; d = `r apa.round(positive.cohen.d,3)`). Whilst in the negative condition state anxiety increased from before to after CMC and there was a medium effect size, although this change was not statistically significant, (t(`r sr.neg.post.int.vs.post.interv$parameter`) = `r apa.round(sr.neg.post.int.vs.post.interv$statistic,3)`, p = `r apa.round(sr.neg.post.int.vs.post.interv$p.value,3)`; d = `r apa.round(negative.cohen.d,3)`). For the blog condition there was no significant change in self-reported state anxiety, (t(`r sr.blog.post.int.vs.post.interv$parameter`) = `r  apa.round(sr.blog.post.int.vs.post.interv$statistic,3)`, p = `r  apa.round(sr.blog.post.int.vs.post.interv$p.value,3)`, d  = `r  apa.round(blog.cohen.d,3)`).
+
+## Anxiety Before CMC/Blog and After the Yoga Task 
+
+```{r echo=F}
+
+#write.csv(clean.summary.data,"josh_clean_summary.csv")
+post.instruct.post.task.summary <- melt(clean.summary.data,id.vars = c("id","condition"),
+                                          measure.vars = c("sr2",
+                                                           "sr4"))
+
+colnames(post.instruct.post.task.summary) = c("pp",
+                                       "condition",
+                                       "time",
+                                       "self.report.value")
+
+this_aov_ez <- aov_ez(id = "pp",
+                      dv = "self.report.value",
+                      data = post.instruct.post.task.summary,
+                      between="condition",
+                      within="time",
+                      anova_table = "pes")
+
+this_aov_ez$Anova
+
+post.instruct.vs.post.task.mean = tapply(post.instruct.post.task.summary$self.report.value,
+                                         post.instruct.post.task.summary$time,
+                                         mean)
+post.instruct.vs.post.task.sd   = tapply(post.instruct.post.task.summary$self.report.value,
+                                         post.instruct.post.task.summary$time,
+                                         sd)
+```
+
+To investigate whether condition continued to affect anxiety after the participant had completed the yoga task, another 2 X 3 ANOVA was conducted, in which ratings of state anxiety before the CMC/Blog were compared to ratings of state anxiety after participants had completed the yoga task between conditions. There was a significant main effect of time (F (1,51) = 32.54, p < .001, ηp2 = 0.39), with anxiety being lower after the yoga task had been completed (M = `r apa.round(post.instruct.vs.post.task.mean[2],3)`, SD = `r apa.round(post.instruct.vs.post.task.sd[2],3)` than before the CMC (M = `r apa.round(post.instruct.vs.post.task.mean[1],3)`, SD = `r apa.round(post.instruct.vs.post.task.sd[1],3)`; see Fig. 1). There was no main effect of condition (F(2,51) = 2.464, p = .095, ηp2 = 0.088) and no significant interaction between condition and time-point (F(2,51) = .857, p = .431, ηp2 = 0.033).
+
+# Discussion
+
+In this paper we investigated whether the valence of anonymous CMC affected participants’ state anxiety levels. We successfully increased participants state anxiety by telling them that they had to complete a yoga poses task which would be videotaped for subsequent evaluation. We hypothesised that participants who took part in positive CMC would have lower levels of anxiety after the discussion than before, indicating that the CMC had been beneficial. This was supported; participants rated their state anxiety as significantly lower following completion of the positive CMC condition. We also hypothesised that negatively valenced CMC would lead to an increase in anxiety. There was some support for this hypothesis; although the change was not statistically significant, we observed an increase in anxiety with a medium effect size when participants completed the negative CMC. In contrast, the slight decrease in state anxiety observed after the completion of  the blog condition was not significant. We were also interested to examine whether the valence of CMC continued to affect participants even after they had completed the task that had raised their state anxiety. The results showed that anxiety decreased after completing the yoga task but that this was not affected by condition.
+
+The findings of positive effects of CMC are in keeping with previous research, which has shown that seeking support online can be beneficial for mental health. For example, Best, Manktelow & Taylor (2014) conducted a systematic narrative review on both the beneficial and harmful effects of CMC on the mental health and wellbeing of young people. The review found the benefits of online communication to be increased self-esteem, an increased sense of social support and increased opportunities for self disclosure.    To our knowledge, few studies have examined the potential negative effects of seeking support for mental health via anonymous CMC. Here we were specifically interested in examining how negatively valenced support might affect participants’ anxiety. This is distinct from intentional negative online interactions such as cyberbullying, which has been shown to have clear negative consequences for mental health (Alhajji, Bass & Dai, 2019). The findings from the reported study indicate that when anonymous CMC leads to conversations that are negatively valenced (e.g. ‘It is terrible’, ‘I hate it’ etc.) this could have negative consequences for individuals’ state anxiety. It is important to note that the reduction in state anxiety following positive CMC was greater than the increase in state anxiety following negative CMC, which suggests that whilst CMC might be likely to reduce anxiety we should be mindful of the potential for negative outcomes. 
+
+Given the increase in peer-to-peer apps and online support, the results have implications for the advice and training that should be provided to individuals using these apps and moderators of these apps. For the individual seeking support to benefit from responses, at least in terms of short-term state emotions, the responses need to be positively valenced; overly-negative responses may cause an increase in negative emotion, even if they are well-intentioned. 
+
+The findings must be considered in light of a number of limitations. An a priori power analysis indicated that a minimum sample size of 54 was required. This was based on a power analysis in G*Power for an interaction in a mixed ANOVA with 3 groups and 2 measurements, at 95% power, alpha = .05 and an estimated correlation between measures at .6. This sample size was achieved even with the excluded participants but some of the effect sizes were smaller than anticipated, meaning that the study was slightly underpowered to detect some effects. This is particularly relevant for the negative CMC condition where an effect size of d = .43 was found but the effect was not statistically significant. A second limitation is that the sample was quite homogenous; they were all female university students aged between 18-25. We intentionally limited recruitment to females because of the  gender differences found in social anxiety (McLean, 2011) could add noise to the data. It would therefore be useful for future research to examine the effects of positively and negatively valenced CMC in different populations and to include both males and females to examine whether gender effects exist. 
+
+Future research could examine the long-term effects of positive and negative CMC. For example, whilst this study found state anxiety was influenced by the valence of CMC, future research could investigate the impact of valence of CMC on post event processing and memory of the event (Cody & Teachman, 2010).  Importantly, the valence of CMC might affect how likely the participant is to seek out further support in a similar manner. Future research could also examine whether the effects of anonymous CMC differs from non-anonymous CMC. The most popular social network sites are non-anonymous (YouGov, 2019) , therefore investigating the effects of positive and negative non-anonymous CMC on anxiety is an important area for future work.  
+
+It is clear that positive and supportive anonymous online communication does appear to reduce subjective reports of state anxiety when individuals face a situation that raises evaluative concerns and social anxiety. Creating safe, anonymous and secure websites or mobile applications aimed at adolescents and young adults could therefore prove to be an effective method of decreasing state anxiety among the users as long as the tone of the discussion remains positive. 
+
+# References 
+
+Alhajji, M., Bass, S., & Dai, T. (2019). Cyberbullying, mental health, and violence in adolescents and associations with sex and race: data from the 2015 Youth Risk Behavior Survey. Global pediatric health, 6, 2333794X19868887.
+
+American Psychiatric Association. (2013). Diagnostic and statistical manual of mental disorders (DSM-5). American Psychiatric Pub.
+
+Barak, A., Boniel-Nissim, M., & Suler, J. (2008). Fostering empowerment in online support groups. Computers in human behavior, 24(5), 1867-1883.
+
+Bellafiore, D. R., Colón, Y., & Rosenberg, P. (2004). Online counseling groups. In R. Kraus, J. Zack, & G. Stricker (Eds.), Online counseling: A handbook for mental health professionals (pp. 197–216). San Diego, CA: Elsevier Academic Press.
+
+Best, P., Manktelow, R., & Taylor, B. (2014). Online communication, social media and adolescent wellbeing: A systematic narrative review. Children and Youth Services Review, 41, 27-36.
+
+Cody, M. W., & Teachman, B. A. (2010). Post-event processing and memory bias for performance feedback in social anxiety. Journal of anxiety disorders, 24(5), 468-479.
+
+Colón, Y., & Friedman, B. (2003). Conducting group therapy online. In Technology in Counselling and Psychotherapy (pp. 59-74). Palgrave, London.
+
+Cousineau, D. (2005). Confidence intervals in within-subject designs: A simpler solution to Loftus and Masson’s method. Tutorials in quantitative methods for psychology, 1(1), 42-45.
+
+Erdoğdu, M. Y. (2016). Parental attitude and teacher behaviours in predicting school bullying. Journal of Education and Training Studies, 4(6), 35-43.
+
+Erwin, B. A., Turk, C. L., Heimberg, R. G., Fresco, D. M., & Hantula, D. A. (2004). The Internet: home to a severe population of individuals with social anxiety disorder?. Journal of anxiety disorders, 18(5), 629-646.
+
+Galegher, J., Sproull, L., & Kiesler, S. (1998). Legitimacy, authority, and community in electronic support groups. Written communication, 15(4), 493-530.
+
+Høybye, M. T., Johansen, C., & Tjørnhøj‐Thomsen, T. (2005). Online interaction. Effects of storytelling in an internet breast cancer support group. Psycho‐Oncology: Journal of the Psychological, Social and Behavioral Dimensions of Cancer, 14(3), 211-220.
+
+Johnsen, J. A. K., Rosenvinge, J. H., & Gammon, D. (2002). Online group interaction and mental health: An analysis of three online discussion forums. Scandinavian journal of psychology, 43(5), 445-449.
+
+Leary, M. R., & Kowalski, R. M. (1995). The self-presentation model of social phobia. Social phobia: Diagnosis, assessment, and treatment, 94-112.
+
+Lin, W. (2004). Internet use and depression, communication anxiety of medical students. Chinese Mental Health Journal, 18(7), 501-503.
+
+Lundy, B. L., & Drouin, M. (2016). From social anxiety to interpersonal connectedness: relationship building within face-to-face, phone and instant messaging mediums. Computers in Human Behavior, 54, 271-277.
+
+Mallen, M. J., Vogel, D. L., & Rochlen, A. B. (2005). The practical aspects of online counseling: Ethics, training, technology, and competency. The Counseling Psychologist, 33(6), 776-818.
+
+Mazalin, D., & Moore, S. (2004). Internet use, identity development and social anxiety among young adults. Behaviour Change, 21(2), 90-102.
+
+McLean, C. P., Asnaani, A., Litz, B. T., & Hofmann, S. G. (2011). Gender differences in anxiety disorders: prevalence, course of illness, comorbidity and burden of illness. Journal of psychiatric research, 45(8), 1027-1035.
+
+McKenna, K. Y., & Bargh, J. A. (1999). Causes and consequences of social interaction on the Internet: A conceptual framework. Media psychology, 1(3), 249-269.
+
+McQuail, D. (2005). Book Review: Comparing media systems: Three models of media and politics. European Journal of Communication, 20(2), 266-268.
+
+Naslund, J. A., Aschbrenner, K. A., Marsch, L. A., & Bartels, S. J. (2016). The future of mental health care: peer-to-peer support and social media. Epidemiology and psychiatric sciences, 25(2), 113-122.
+
+Pierce, T. (2009). Social anxiety and technology: Face-to-face communication versus technological communication among teens. Computers in Human Behavior, 25(6), 1367-1372.
+
+Shalom, J. G., Israeli, H., Markovitzky, O., & Lipsitz, J. D. (2015). Social anxiety and physiological arousal during computer mediated vs. face to face communication. Computers in Human Behavior, 44, 202-208.
+
+Sheeks, M. S., & Birchmeier, Z. P. (2007). Shyness, sociability, and the use of computer-mediated communication in relationship development. CyberPsychology & Behavior, 10(1), 64-70.
+
+Shepherd, R. M., & Edelmann, R. J. (2005). Reasons for internet use and social anxiety. Personality and individual Differences, 39(5), 949-958.
+Siriaraya, P., Tang, C., Ang, C.S., Pfeil, U. and Zaphiris, P., 2011. A comparison of empathic communication pattern for teenagers and older people in online support communities. Behaviour & Information Technology, 30(5), pp.617-628.
+
+Stritzke, W. G., Nguyen, A., & Durkin, K. (2004). Shyness and computer-mediated communication: A self-presentational theory perspective. Media Psychology, 6(1), 1-22.
+
+Suler, J. (2004a). The online disinhibition effect. Cyberpsychology & behavior, 7(3), 321-326.
+
+Tanis, M. (2007). Online social support groups. In A. Joinson, K. McKenna, T. Postmes, & U. D. Reips (Eds.), The Oxford handbook of internet psychology (pp. 139–154). New York: Oxford University Press. 
+
+Taylor, J., & Macdonald, J. (2002). The effects of asynchronous computer-mediated group interaction on group processes. Social Science Computer Review, 20(3), 260-274.
+
+Yen, J. Y., Ko, C. H., Yen, C. F., Wu, H. Y., & Yang, M. J. (2007). The comorbid psychiatric symptoms of Internet addiction: attention deficit and hyperactivity disorder (ADHD), depression, social phobia, and hostility. Journal of adolescent health, 41(1), 93-98.
+
+Yougovcouk. (2019). Yougovcouk. Retrieved 24 September, 2019, from https://yougov.co.uk/ratings/technology/popularity/social-networks/all
